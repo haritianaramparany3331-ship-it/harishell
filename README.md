@@ -1,52 +1,42 @@
-# Software
+# harishell
 
 harishell: A Unix shell written in C++ that supports foreground/background process management, job control and Unix signal handling.
 
 ---
 
-## Features
+## Changelog
 
-- Execute **real commands** with arguments, anything you'd use in a regular terminal (cd, git, pwd, ...)
-- **Stop** and **resume** processes with `stop <pid>` / `cont <pid>` commands
-- Run processes in the **background** using `&`
-- Suspend the foreground process with `Ctrl+Z` (SIGTSTP)
-- Terminate the foreground process with `Ctrl+Z` (SIGINT)
-- Error handling for invalid input and signals sent without a running process (setjmp)
-- Automatic zombie-process cleanup via `SIGCHLD`
-- **logout** command with safety checks for running background processes
-- Current working path displayed before each prompt, as in a standard shell
-- Background and stopped processes listed after each command for full visibility
-- Support double or several command input by using the operator: (blank space), `;`, `&&`and `||`
-- Invert the exit status of a command with `!`
-
----
-
-## Build and run
-
-Requires a Linux or macOS environment. On Windows, use WSL (Windows Subsystem for Linux) or a virtual machine. Clone the repository, navigate to the project folder, then run:
-- `g++ myshell.cpp -o myshell` 
-- `./myshell`
-
----
-
-## Signal Handling
-
-| Signal  | Behavior |
-|---------|----------|
-| SIGCHLD | Reaps zombie processes; removes them from the process list |
-| SIGTSTP | Stops the current foreground process (Ctrl+Z) |
-| SIGINT | Terminates the current foreground process (Ctrl+C) |
+- Added execution of real commands with arguments (`git`, `ls`, `pwd`, ...) via `fork` + `execvp`
+- Added background execution with `&`; background processes ignore `SIGHUP`
+- Added `Ctrl+Z` (SIGTSTP) to stop the foreground process
+- Added automatic zombie cleanup via `SIGCHLD`
+- Added each child getting its own process group (`setpgid(0, 0)`) so signals don't reach the shell itself
+- Added `stop <pid>` to stop a process
+- Added `logout`, refused while background processes are still running, with a y/n confirmation otherwise
+- Added the `cd <path>` builtin
+- Added `Ctrl+C` (SIGINT) to terminate the foreground process
+- Changed foreground handling to use `waitpid` with `WUNTRACED`, so the shell detects both stopped and finished processes (`WIFEXITED` / `WIFSIGNALED`)
+- Added `sigsetjmp` / `siglongjmp` so `Ctrl+C` / `Ctrl+Z` without a running process return cleanly to the prompt
+- Added `Ctrl+D` (EOF) to exit the shell
+- Added a list of background and stopped processes, printed after every command
+- Added the current working path as the prompt, as in a standard shell
+- Changed all shell output from German to English
+- Added `cont <pid>` to resume a stopped process; a resumed foreground process is waited for again
+- Added quoted arguments: `"..."` and `'...'` are passed as a single argument
+- Added command chaining with `;`, `&&` and `||`
+- Added `!` to invert the exit status of a command
+- Added a red prompt after a command exits with a non-zero status
+- Added subshell grouping with `( ... )`, e.g. `( cd /tmp ; ls ) && pwd` (parentheses must be separated by spaces)
+- Added the `exec` builtin, which replaces the shell with the given command
+- Changed the structure: command execution moved into `hilfsfunktionen.cpp` / `hilfsfunktionen.h`
+- Added line continuation: a trailing `\` continues the command on the next line
+- Added pipes with `|`, e.g. `ls | grep cpp | wc -l`
+- Added I/O redirection: `<`, `>`, `>>`, `<>`, `<&`, `>&`
+- Added explicit file descriptors for redirection, e.g. `2>errors.txt`, `2>&1`, and closing a descriptor with `>&-`
+- Added GNU readline: line editing with arrow keys and command history
 
 ---
 
-## Implementation Notes
+## Author and resources
+Antsa Haritiana Ramparany, computer science student at Hochschule Darmstadt (h_da), Germany
 
-- Each child process is placed in its own process group (`setpgid(0, 0)`) so signals don't propagate unintentionally to the shell itself.
-- Background processes ignore `SIGHUP` and keep running until explicitly stopped.
-- `waitpid` with `WUNTRACED` is used for foreground processes so the shell detects both stops and termination. `WIFEXITED` and `WIFSIGNALED` are checked to remove processes from the list when they are no longer running.
-- The process list tracks all active background processes and stopped ones.
-
----
-
-## Authors and ressources
-Antsa Haritiana Ramparany — computer science student at Hochschule Darmstadt (h_da), Germany
