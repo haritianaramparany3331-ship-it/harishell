@@ -1,42 +1,22 @@
 # harishell
 
-harishell: A Unix shell written in C++ that supports foreground/background process management, job control and Unix signal handling.
+A Unix shell built from scratch in C++, guided by the open-source build-your-own-shell guide and the Operating Systems course at Hochschule Darmstadt. It supports foreground and background process management, job control and Unix signal handling, and covers most of what you'd use in a regular terminal day to day.
 
----
+- Runs real commands with arguments (`git`, `ls`, `pwd`, ...) via `fork` and `execvp`, plus the builtins `cd`, `exec` and `logout`
+- Runs processes in the background with `&`; background processes ignore `SIGHUP` and keep running
+- Stops the foreground process with `Ctrl+Z` and terminates it with `Ctrl+C`; `stop <pid>` and `cont <pid>` stop and resume any process by its PID
+- Lists all background and stopped processes after every command
+- Chains commands with `;`, `&&` and `||`, inverts an exit status with `!`, and groups commands in a subshell with `( ... )`
+- Connects commands with pipes, e.g. `ls | grep cpp | wc -l`
+- Supports I/O redirection with `<`, `>`, `>>`, `<>`, `<&` and `>&`, including explicit file descriptors like `2>errors.txt`, `2>&1` or `>&-`
+- Treats quoted text (`"..."` or `'...'`) as a single argument and continues a command on the next line after a trailing `\`
+- Offers line editing and command history through GNU readline
+- Shows the current working path as the prompt, which turns red after a command fails
+- Refuses `logout` while background processes are still running, and asks for confirmation otherwise
 
-## Changelog
+Each child process gets its own process group (`setpgid(0, 0)`), so signals like `Ctrl+C` reach only the foreground process and never the shell itself. The shell waits for foreground processes with `waitpid` and `WUNTRACED` to detect both stopped and finished processes, while a `SIGCHLD` handler reaps finished background processes so no zombies are left behind. `sigsetjmp` and `siglongjmp` bring the shell cleanly back to the prompt when `Ctrl+C` or `Ctrl+Z` is pressed without a running process.
 
-- Added execution of real commands with arguments (`git`, `ls`, `pwd`, ...) via `fork` + `execvp`
-- Added background execution with `&`; background processes ignore `SIGHUP`
-- Added `Ctrl+Z` (SIGTSTP) to stop the foreground process
-- Added automatic zombie cleanup via `SIGCHLD`
-- Added each child getting its own process group (`setpgid(0, 0)`) so signals don't reach the shell itself
-- Added `stop <pid>` to stop a process
-- Added `logout`, refused while background processes are still running, with a y/n confirmation otherwise
-- Added the `cd <path>` builtin
-- Added `Ctrl+C` (SIGINT) to terminate the foreground process
-- Changed foreground handling to use `waitpid` with `WUNTRACED`, so the shell detects both stopped and finished processes (`WIFEXITED` / `WIFSIGNALED`)
-- Added `sigsetjmp` / `siglongjmp` so `Ctrl+C` / `Ctrl+Z` without a running process return cleanly to the prompt
-- Added `Ctrl+D` (EOF) to exit the shell
-- Added a list of background and stopped processes, printed after every command
-- Added the current working path as the prompt, as in a standard shell
-- Changed all shell output from German to English
-- Added `cont <pid>` to resume a stopped process; a resumed foreground process is waited for again
-- Added quoted arguments: `"..."` and `'...'` are passed as a single argument
-- Added command chaining with `;`, `&&` and `||`
-- Added `!` to invert the exit status of a command
-- Added a red prompt after a command exits with a non-zero status
-- Added subshell grouping with `( ... )`, e.g. `( cd /tmp ; ls ) && pwd` (parentheses must be separated by spaces)
-- Added the `exec` builtin, which replaces the shell with the given command
-- Changed the structure: command execution moved into `hilfsfunktionen.cpp` / `hilfsfunktionen.h`
-- Added line continuation: a trailing `\` continues the command on the next line
-- Added pipes with `|`, e.g. `ls | grep cpp | wc -l`
-- Added I/O redirection: `<`, `>`, `>>`, `<>`, `<&`, `>&`
-- Added explicit file descriptors for redirection, e.g. `2>errors.txt`, `2>&1`, and closing a descriptor with `>&-`
-- Added GNU readline: line editing with arrow keys and command history
+The tokenizer splits input on spaces, so operators and parentheses need spaces around them: `( cd /tmp ; ls )` works
 
----
-
-## Author and resources
 Antsa Haritiana Ramparany, computer science student at Hochschule Darmstadt (h_da), Germany
 
